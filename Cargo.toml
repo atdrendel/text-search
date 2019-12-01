@@ -2,5 +2,5 @@
 
 members = [
   "text-search",
-  "gne-text-search",
+  "text-search-sys",
 ]

@@ -1,5 +1,5 @@
 [package]
-name = "gne-text-search"
+name = "text-search-sys"
 version = "0.1.0"
 authors = ["Anthony Drendel <me@anthonydrendel.com>"]
 edition = "2018"
