@@ -8,4 +8,3 @@
 
 #import "ternarytree.h"
 #import "countedset.h"
-
