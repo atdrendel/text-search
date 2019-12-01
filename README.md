@@ -1,1 +1,1 @@
-A text search library written in Rust.
+Full-text search engine using ternary trees written in Rust.
