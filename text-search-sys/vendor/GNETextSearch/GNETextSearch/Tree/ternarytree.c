@@ -397,6 +397,7 @@ callback_signal _tsearch_ternarytree_suffix_search_callback(const char character
                                                             const size_t index,
                                                             const void *context)
 {
+    (void)index;
     if (context == NULL) { return callback_stop; }
     _tsearch_string_search *search = (_tsearch_string_search *)context;
     size_t currentIndex = search->currentIndex;
