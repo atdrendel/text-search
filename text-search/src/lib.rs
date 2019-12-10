@@ -1,3 +1,5 @@
+pub mod counted_set;
+
 use text_search_sys;
 
 #[cfg(test)]
