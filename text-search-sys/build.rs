@@ -49,11 +49,10 @@ fn generate_bindings(project_dir: &PathBuf, src: &PathBuf) {
 }
 
 fn string_from_path(root: &PathBuf, subpath: Option<&str>) -> String {
-  let path: PathBuf;
-  if let Some(subpath) = subpath {
-    path = root.join(subpath);
+  let path = if let Some(subpath) = subpath {
+    root.join(subpath)
   } else {
-    path = root.to_path_buf();
-  }
+    root.to_path_buf()
+  };
   path.into_os_string().into_string().unwrap()
 }
