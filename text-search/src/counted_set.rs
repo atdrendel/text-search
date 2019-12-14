@@ -145,7 +145,7 @@ impl CountedSet {
   }
 
   pub fn to_vec(&self) -> Vec<i64> {
-    let mut integers: Vec<GNEInteger> = vec![];
+    let mut integers: Vec<GNEInteger> = Vec::with_capacity(0);
     let inout_count: Box<usize> = Box::new(0);
 
     unsafe {
