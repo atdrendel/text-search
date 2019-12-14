@@ -29,7 +29,8 @@ use text_search_sys::{
 /// `CountedSet` keeps track of the number of times each integer has
 /// been added to it.
 ///
-/// `CountedSet` also supports the
+/// `CountedSet` also supports the some standard set operations:
+/// intersect, minus, and union.
 ///
 /// # Examples
 ///
