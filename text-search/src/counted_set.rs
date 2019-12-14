@@ -8,6 +8,51 @@ use text_search_sys::{
   tsearch_countedset_union,
 };
 
+// FIXME
+// =====
+//
+// `CountedSet` is currently implemented by wrapping GNETextSearch's
+// `tsearch_countedset`, which is a balanced binary tree stored in
+// a single, contiguous buffer.
+//
+// 1. Replace this with a simple `BTreeHashMap` implementation.
+// 2. Make the class generic
+// 3. Add support for non-mutating set functions, while maintaining
+//    backwards compatability.
+
+/// A counted set of 64-bit integers implemented by wrapping
+/// GNETextSearch's `tsearch_countedset`, which is a balanced binary
+/// tree stored in a single, contiguous buffer.
+///
+/// `CountedSet`, like a standard set, only holds a single copy of each
+/// 64-bit integer added to it. However, unlike a standard set,
+/// `CountedSet` keeps track of the number of times each integer has
+/// been added to it.
+///
+/// `CountedSet` also supports the
+///
+/// # Examples
+///
+/// ```
+/// use text_search::counted_set::CountedSet;
+///
+/// let mut set = CountedSet::new();
+///
+/// // Add some integers.
+/// set.insert(0);
+/// set.insert(0);
+/// set.insert(1);
+///
+/// // Check if the set contains a specific integer.
+/// println!("{}", set.contains(0)); // prints "true"
+/// println!("{}", set.contains(1)); // prints "true"
+/// println!("{}", set.contains(2)); // prints "false"
+///
+/// // Check how many times a specific integer has been inserted.
+/// println!("{}", set.get_count(0)); // prints "2"
+/// println!("{}", set.get_count(1)); // prints "1"
+/// println!("{}", set.get_count(2)); // prints "0"
+/// ```
 #[derive(Debug)]
 pub struct CountedSet {
   raw: tsearch_countedset_ptr,
