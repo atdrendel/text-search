@@ -1,11 +1,11 @@
 use text_search_sys::{
   _Result, tsearch_countedset_add_int, tsearch_countedset_contains_int,
-  tsearch_countedset_copy, tsearch_countedset_free,
-  tsearch_countedset_get_count, tsearch_countedset_get_count_for_int,
-  tsearch_countedset_init, tsearch_countedset_intersect,
-  tsearch_countedset_minus, tsearch_countedset_ptr,
-  tsearch_countedset_remove_all_ints, tsearch_countedset_remove_int,
-  tsearch_countedset_union,
+  tsearch_countedset_copy, tsearch_countedset_copy_ints,
+  tsearch_countedset_free, tsearch_countedset_get_count,
+  tsearch_countedset_get_count_for_int, tsearch_countedset_init,
+  tsearch_countedset_intersect, tsearch_countedset_minus,
+  tsearch_countedset_ptr, tsearch_countedset_remove_all_ints,
+  tsearch_countedset_remove_int, tsearch_countedset_union, GNEInteger,
 };
 
 // FIXME
@@ -141,6 +141,20 @@ impl CountedSet {
       let before = tsearch_countedset_get_count_for_int(self.raw, value);
       tsearch_countedset_remove_int(self.raw, value).expect();
       before > 0
+    }
+  }
+
+  pub fn to_vec(&self) -> Vec<i64> {
+    let mut integers: Vec<GNEInteger> = vec![];
+    let inout_count: Box<usize> = Box::new(0);
+
+    unsafe {
+      let integers_ptr: *mut *mut GNEInteger = &mut integers.as_mut_ptr();
+      let inout_count_ptr = Box::into_raw(inout_count);
+      tsearch_countedset_copy_ints(self.raw, integers_ptr, inout_count_ptr)
+        .expect();
+      let count = *Box::from_raw(inout_count_ptr);
+      Vec::from_raw_parts(*integers_ptr, count, count)
     }
   }
 }
@@ -323,6 +337,17 @@ mod tests {
     insert_integers(&mut set, vec![0, 0]);
     assert_eq!(true, set.remove_all(0));
     assert_eq!(false, set.remove_all(0));
+  }
+
+  #[test]
+  fn counted_set_to_vec() {
+    let mut set = CountedSet::new();
+    insert_integers(&mut set, vec![91, 91, 123456, -1, 91, -1]);
+    let output = set.to_vec();
+    assert_eq!(3, output.len());
+    assert_eq!(91, output[0]);
+    assert_eq!(-1, output[1]);
+    assert_eq!(123456, output[2]);
   }
 
   #[test]
