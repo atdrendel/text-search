@@ -61,26 +61,99 @@ pub struct CountedSet {
 
 // TODO: Replace i64 with generic Hash and Eq
 impl CountedSet {
+  /// Creates an empty `CountedSet`.
+  ///
+  /// # Examples
+  ///
+  /// ```
+  /// use text_search::counted_set::CountedSet;
+  /// let set = CountedSet::new();
+  /// ```
   pub fn new() -> CountedSet {
     CountedSet {
       raw: unsafe { tsearch_countedset_init() },
     }
   }
 
+  /// Returns the number of elements in the set.
+  ///
+  /// # Examples
+  ///
+  /// ```
+  /// use text_search::counted_set::CountedSet;
+  ///
+  /// let mut set = CountedSet::new();
+  /// assert_eq!(0, set.len());
+  /// set.insert(1);
+  /// assert_eq!(1, set.len());
+  /// set.insert(1);
+  /// assert_eq!(1, set.len());
+  /// set.insert(2);
+  /// assert_eq!(2, set.len());
+  /// ```
   pub fn len(&self) -> usize {
     unsafe { tsearch_countedset_get_count(self.raw) }
   }
 
+  /// Returns `true` if the set contains no elements.
+  ///
+  /// # Examples
+  ///
+  /// ```
+  /// use text_search::counted_set::CountedSet;
+  ///
+  /// let mut set = CountedSet::new();
+  /// assert_eq!(true, set.is_empty());
+  /// set.insert(1);
+  /// assert_eq!(false, set.is_empty());
+  /// ```
   pub fn is_empty(&self) -> bool {
     // TODO: Don't get the full count for this.
     let count = unsafe { tsearch_countedset_get_count(self.raw) };
     count == 0
   }
 
+  /// Clears the set, removing all values.
+  ///
+  /// # Examples
+  ///
+  /// ```
+  /// use text_search::counted_set::CountedSet;
+  ///
+  /// let mut set = CountedSet::new();
+  /// set.insert(1);
+  /// set.clear();
+  /// assert_eq!(true, set.is_empty());
+  /// ```
   pub fn clear(&mut self) {
     unsafe { tsearch_countedset_remove_all_ints(self.raw).expect() }
   }
 
+  /// Substracts the values in `other` from `self`.
+  ///
+  /// If values in `other` have been added multiple times, the counts for
+  /// equivalent values in `self` will be subtracted by that amount.
+  ///
+  /// # Examples
+  ///
+  /// ```
+  /// use text_search::counted_set::CountedSet;
+  ///
+  /// let mut set = CountedSet::new();
+  /// set.insert(1);
+  /// set.insert(1);
+  /// set.insert(1);
+  /// set.insert(2);
+  ///
+  /// let mut other = CountedSet::new();
+  /// other.insert(1);
+  /// other.insert(1);
+  /// other.insert(2);
+  ///
+  /// set.minus(&other);
+  /// assert_eq!(1, set.get_count(1));
+  /// assert_eq!(0, set.get_count(2));
+  /// ```
   pub fn minus(&mut self, other: &CountedSet) {
     unsafe {
       tsearch_countedset_minus(self.raw, other.raw).expect();
