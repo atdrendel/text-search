@@ -191,6 +191,8 @@ impl _ResultExt for _Result {
 #[cfg(test)]
 mod tests {
   use super::*;
+  use std::collections::HashMap;
+  use std::ops::Range;
 
   #[test]
   fn length_of_counted_set() {
@@ -351,6 +353,27 @@ mod tests {
   }
 
   #[test]
+  fn large_counted_set_to_vec() {
+    let mut set = CountedSet::new();
+
+    let integer_map: HashMap<i64, usize> =
+      [(-1, 4), (-9876, 3), (-12345, 1)].iter().cloned().collect();
+    let range_map: HashMap<Range<i64>, usize> =
+      [(0..1000, 2)].iter().cloned().collect();
+    let mut vec: Vec<i64> = vec![];
+    add_integers_from_map_to_vec(&mut vec, integer_map);
+    add_integers_from_range_map_to_vec(&mut vec, range_map);
+    let counted_set_length = vec.len() - 1005; // Duplicates are removed in CountedSet
+
+    insert_integers(&mut set, vec);
+    let output = set.to_vec();
+    assert_eq!(counted_set_length, output.len());
+    assert_eq!(-1, output[0]);
+    assert_eq!(-9876, output[1]);
+    assert_eq!(-12345, output[counted_set_length - 1]);
+  }
+
+  #[test]
   fn clone_counted_set() {
     let mut set = CountedSet::new();
     insert_integers(&mut set, vec![91, 91, 123456, 91, -1]);
@@ -363,6 +386,30 @@ mod tests {
     assert_eq!(3, copy.get_count(91));
     assert_eq!(1, copy.get_count(123456));
     assert_eq!(1, copy.get_count(-1));
+  }
+
+  fn add_integers_from_map_to_vec(
+    vec: &mut Vec<i64>,
+    map: HashMap<i64, usize>,
+  ) {
+    for (int, count) in map {
+      for _ in 0..count {
+        vec.push(int)
+      }
+    }
+  }
+
+  fn add_integers_from_range_map_to_vec(
+    vec: &mut Vec<i64>,
+    map: HashMap<Range<i64>, usize>,
+  ) {
+    for (range, count) in map {
+      for int in range {
+        for _ in 0..count {
+          vec.push(int)
+        }
+      }
+    }
   }
 
   fn insert_integers(counted_set: &mut CountedSet, integers: Vec<i64>) {
