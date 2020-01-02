@@ -129,10 +129,10 @@ impl CountedSet {
     unsafe { tsearch_countedset_remove_all_ints(self.raw).expect() }
   }
 
-  /// Substracts the values in `other` from `self`.
+  /// Substracts the values in `other` from the set.
   ///
   /// If values in `other` have been added multiple times, the counts for
-  /// equivalent values in `self` will be subtracted by that amount.
+  /// equivalent values in the set will be subtracted by that amount.
   ///
   /// # Examples
   ///
@@ -160,55 +160,193 @@ impl CountedSet {
     }
   }
 
+  /// Adds the counts of the values in `other` to the set and removes from the
+  /// set all values not also contained in `other`.
+  ///
+  /// If matching values in `other` have been added multiple times, the
+  /// counts for equivanent values in the set will be increased by that
+  /// amount.
+  ///
+  /// # Examples
+  ///
+  /// ```
+  /// use text_search::counted_set::CountedSet;
+  ///
+  /// let mut set = CountedSet::new();
+  /// set.insert(1);
+  /// set.insert(1);
+  /// set.insert(1);
+  /// set.insert(2);
+  /// set.insert(3);
+  ///
+  /// let mut other = CountedSet::new();
+  /// other.insert(1);
+  /// other.insert(1);
+  /// other.insert(2);
+  /// other.insert(4);
+  ///
+  /// set.intersect(&other);
+  /// assert_eq!(5, set.get_count(1));
+  /// assert_eq!(2, set.get_count(2));
+  /// assert_eq!(false, set.contains(3));
+  /// assert_eq!(false, set.contains(4));
+  /// ```
   pub fn intersect(&mut self, other: &CountedSet) {
     unsafe {
       tsearch_countedset_intersect(self.raw, other.raw).expect();
     }
   }
 
+  /// Adds each value in `other` to the set.
+  ///
+  /// If matching values in `other` have been added multiple times, the
+  /// counts for equivanent values in `self` will be increased by that
+  /// amount.
+  ///
+  /// # Examples
+  ///
+  /// ```
+  /// use text_search::counted_set::CountedSet;
+  ///
+  /// let mut set = CountedSet::new();
+  /// set.insert(1);
+  /// set.insert(1);
+  /// set.insert(1);
+  /// set.insert(2);
+  /// set.insert(3);
+  ///
+  /// let mut other = CountedSet::new();
+  /// other.insert(1);
+  /// other.insert(1);
+  /// other.insert(2);
+  /// other.insert(4);
+  /// other.insert(4);
+  ///
+  /// set.union(&other);
+  /// assert_eq!(5, set.get_count(1));
+  /// assert_eq!(2, set.get_count(2));
+  /// assert_eq!(1, set.get_count(3));
+  /// assert_eq!(2, set.get_count(4));
+  /// ```
   pub fn union(&mut self, other: &CountedSet) {
     unsafe {
       tsearch_countedset_union(self.raw, other.raw).expect();
     }
   }
 
+  /// Returns `true` if the set contains the specified valued,
+  /// otherwise `false`.
+  ///
+  /// # Examples
+  ///
+  /// ```
+  /// use text_search::counted_set::CountedSet;
+  ///
+  /// let mut set = CountedSet::new();
+  /// set.insert(1);
+  /// set.insert(2);
+  /// set.insert(2);
+  /// assert_eq!(true, set.contains(1));
+  /// assert_eq!(true, set.contains(2));
+  /// assert_eq!(false, set.contains(3));
+  /// ```
   pub fn contains(&self, value: i64) -> bool {
     unsafe { tsearch_countedset_contains_int(self.raw, value) }
   }
 
+  /// Returns the number of times the specified value has been added
+  /// to the set.
+  ///
+  /// # Examples
+  ///
+  /// ```
+  /// use text_search::counted_set::CountedSet;
+  ///
+  /// let mut set = CountedSet::new();
+  /// set.insert(1);
+  /// set.insert(2);
+  /// set.insert(2);
+  /// assert_eq!(1, set.get_count(1));
+  /// assert_eq!(2, set.get_count(2));
+  /// assert_eq!(0, set.get_count(3));
+  /// ```
   pub fn get_count(&self, value: i64) -> usize {
     unsafe { tsearch_countedset_get_count_for_int(self.raw, value) }
   }
 
-  pub fn insert(&mut self, value: i64) -> bool {
-    let count = unsafe {
+  /// Adds a value to the set, returning the number of times the specified
+  /// value has been added to the set.
+  ///
+  /// # Examples
+  ///
+  /// ```
+  /// use text_search::counted_set::CountedSet;
+  ///
+  /// let mut set = CountedSet::new();
+  /// assert_eq!(1, set.insert(1));
+  /// assert_eq!(2, set.insert(1));
+  /// ```
+  pub fn insert(&mut self, value: i64) -> usize {
+    unsafe {
       tsearch_countedset_add_int(self.raw, value).expect();
       tsearch_countedset_get_count_for_int(self.raw, value)
-    };
-    match count {
-      0 | 1 => false,
-      _ => true,
     }
   }
 
-  // `tsearch_countedset_remove_int()` does **not** have this
-  // method's behavior. It has the behavior of `remove_all()`.
-  pub fn remove(&mut self, value: i64) -> bool {
+  // TODO: Make sure to implement `tsearch_countedset_remove_int()` with
+  // `remove_all()` because `tsearch_countedset_remove_int()` does **not**
+  // have this method's behavior. It has the behavior of `remove_all()`.
+
+  /// Decrements by one the count of the specified value in the
+  /// set. Returns the new count of the specified value in the set.
+  ///
+  /// # Examples
+  ///
+  /// ```
+  /// use text_search::counted_set::CountedSet;
+  ///
+  /// let mut set = CountedSet::new();
+  /// set.insert(1);
+  /// set.insert(1);
+  ///
+  /// assert_eq!(1, set.remove(1));
+  /// assert_eq!(0, set.remove(1));
+  /// assert_eq!(0, set.remove(1));
+  /// ```
+  pub fn remove(&mut self, value: i64) -> usize {
     unsafe {
       let before = tsearch_countedset_get_count_for_int(self.raw, value);
       if before == 0 {
-        false
+        0
       } else {
+        let new_count = before - 1;
         tsearch_countedset_remove_int(self.raw, value).expect();
-        for _ in 0..(before - 1) {
+        for _ in 0..new_count {
           tsearch_countedset_add_int(self.raw, value);
         }
-        true
+        new_count
       }
     }
   }
 
-  // `tsearch_countedset_remove_int()` has this method's behavior.
+  /// Removes the specified value from the set, regardless of how
+  /// many times it had been added to the set.
+  ///
+  /// Returns `true` if the value had been contained in the set,
+  /// otherwise `false`.
+  ///
+  /// # Examples
+  ///
+  /// ```
+  /// use text_search::counted_set::CountedSet;
+  ///
+  /// let mut set = CountedSet::new();
+  /// set.insert(1);
+  /// set.insert(1);
+  ///
+  /// assert_eq!(true, set.remove_all(1));
+  /// assert_eq!(false, set.remove_all(1));
+  /// ```
   pub fn remove_all(&mut self, value: i64) -> bool {
     unsafe {
       let before = tsearch_countedset_get_count_for_int(self.raw, value);
@@ -217,6 +355,31 @@ impl CountedSet {
     }
   }
 
+  /// Copies the values contained in the set into a new `Vec`.
+  ///
+  /// The values in the returned `Vec` are sorted in decending order
+  /// according to how many times the values were added to the set.
+  ///
+  /// The order of values added the same number of times to the set
+  /// is undefined. So, if both `1` and `2` were each added three times
+  /// to the set, the returned `Vec` could be either `vec![1, 2]` or
+  /// `vec![2, 1]`.
+  ///
+  /// # Examples
+  ///
+  /// ```
+  /// use text_search::counted_set::CountedSet;
+  ///
+  /// let mut set = CountedSet::new();
+  /// set.insert(1);
+  /// set.insert(1);
+  /// set.insert(2);
+  /// set.insert(2);
+  /// set.insert(2);
+  /// set.insert(4);
+  ///
+  /// assert_eq!(vec![2, 1, 4], set.to_vec());
+  /// ```
   pub fn to_vec(&self) -> Vec<i64> {
     let mut integers: Vec<GNEInteger> = Vec::with_capacity(0);
     let inout_count: Box<usize> = Box::new(0);
@@ -233,6 +396,25 @@ impl CountedSet {
 }
 
 impl Clone for CountedSet {
+  /// Returns a copy of the set.
+  ///
+  /// # Examples
+  ///
+  /// ```
+  /// use text_search::counted_set::CountedSet;
+  ///
+  /// let mut set = CountedSet::new();
+  /// set.insert(1);
+  /// set.insert(1);
+  /// set.insert(2);
+  ///
+  /// let mut copy = set.clone();
+  /// copy.insert(3);
+  ///
+  /// assert_eq!(copy.get_count(1), set.get_count(1));
+  /// assert_eq!(copy.get_count(2), set.get_count(2));
+  /// assert_ne!(copy.get_count(3), set.get_count(3));
+  /// ```
   fn clone(&self) -> CountedSet {
     let raw = unsafe { tsearch_countedset_copy(self.raw) };
     assert!(raw.is_null() == false);
@@ -391,19 +573,19 @@ mod tests {
   #[test]
   fn insert_into_counted_set() {
     let mut set = CountedSet::new();
-    assert_eq!(false, set.insert(1));
-    assert_eq!(true, set.insert(1));
-    assert_eq!(true, set.insert(1));
-    assert_eq!(false, set.insert(2));
+    assert_eq!(1, set.insert(1));
+    assert_eq!(2, set.insert(1));
+    assert_eq!(3, set.insert(1));
+    assert_eq!(1, set.insert(2));
   }
 
   #[test]
   fn remove_from_counted_set() {
     let mut set = CountedSet::new();
     insert_integers(&mut set, vec![0, 0]);
-    assert_eq!(true, set.remove(0));
-    assert_eq!(true, set.remove(0));
-    assert_eq!(false, set.remove(0));
+    assert_eq!(1, set.remove(0));
+    assert_eq!(0, set.remove(0));
+    assert_eq!(0, set.remove(0));
   }
 
   #[test]
